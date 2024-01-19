@@ -1,5 +1,5 @@
-#ifndef MEM_BLOCK_H
-#define MEM_BLOCK_H
+#ifndef MEM_CHUNK_H
+#define MEM_CHUNK_H
 
 #include <cstddef>
 
@@ -8,12 +8,18 @@ class mem_chunk_t
 public:
     void* ptr;
     std::size_t size;
+    bool is_free;
 
-    mem_chunk_t() = default;
+    std::shared_ptr<mem_chunk_t> next;
 
-    mem_chunk_t(void* ptr, std::size_t size) : ptr(ptr), size(size)
+    mem_chunk_t() : ptr(nullptr), size(0), is_free(true)
+    {
+    }
+
+    mem_chunk_t(void* ptr, std::size_t size, bool is_free = true)
+        : ptr(ptr), size(size), is_free(is_free)
     {
     }
 };
 
-#endif //MEM_BLOCK_H
+#endif //MEM_CHUNK_H

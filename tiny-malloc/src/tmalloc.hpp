@@ -5,6 +5,6 @@
 
 void* tmalloc(std::size_t size);
 
-void tfree(void* ptr);
+bool tfree(void* ptr);
 
 #endif //TMALLOC_H

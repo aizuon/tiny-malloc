@@ -165,7 +165,7 @@ public:
             return chunk;
         }
 
-        std::size_t block_size = std::max(size,
+        std::size_t block_size = std::max(static_cast<std::size_t>(size * 1.5f),
                                           static_cast<std::size_t>(sysconf(_SC_PAGESIZE) * 16));
         auto new_block = allocate_block(block_size);
         if (!new_block)

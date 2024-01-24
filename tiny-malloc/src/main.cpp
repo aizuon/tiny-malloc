@@ -10,7 +10,7 @@
 
 int main(int argc, char** argv)
 {
-    const size_t allocations = 10;
+    const size_t allocations = 1000000;
     const size_t min_alloc_size = 128;
     const size_t max_alloc_size = 4096;
 

@@ -20,14 +20,14 @@ public:
 
     std::shared_ptr<mem_block_t> allocate_block(std::size_t size)
     {
-        auto new_block = std::make_shared<mem_block_t>(size);
-        if (!new_block->ptr)
+        auto block = std::make_shared<mem_block_t>(size);
+        if (!block->ptr)
         {
             return nullptr;
         }
-        new_block->next_block = blocks_head;
-        blocks_head = new_block;
-        return new_block;
+        block->next_block = blocks_head;
+        blocks_head = block;
+        return block;
     }
 
     void free_unused_blocks()
@@ -48,7 +48,7 @@ public:
                     blocks_head = current->next_block;
                 }
 
-                current = (prev) ? prev->next_block : blocks_head;
+                current = prev ? prev->next_block : blocks_head;
             }
             else
             {
@@ -58,56 +58,52 @@ public:
         }
     }
 
-    void add_to_free_list(std::shared_ptr<mem_chunk_t> node)
+    void add_to_free_list(std::shared_ptr<mem_chunk_t> chunk)
     {
-        node->next = nullptr;
+        chunk->is_free = true;
 
-        if (!free_list_head || node < free_list_head)
+        if (!free_list_head)
         {
-            node->next = free_list_head;
-            free_list_head = node;
+            chunk->next = nullptr;
         }
         else
         {
-            auto current = free_list_head;
-            while (current->next && current->next->ptr < node->ptr)
-            {
-                current = current->next;
-            }
-            node->next = current->next;
-            current->next = node;
+            chunk->next = free_list_head;
         }
+        free_list_head = chunk;
     }
 
-    void remove_from_free_list(std::shared_ptr<mem_chunk_t> node)
+    void remove_from_free_list(std::shared_ptr<mem_chunk_t> chunk)
     {
         if (!free_list_head)
         {
             return;
         }
 
-        if (free_list_head == node)
+        chunk->is_free = false;
+
+        if (chunk == free_list_head)
         {
-            free_list_head = node->next;
-            node->next = nullptr;
+            free_list_head = chunk->next;
+            chunk->next = nullptr;
             return;
         }
 
         auto current = free_list_head;
         std::shared_ptr<mem_chunk_t> prev = nullptr;
-        while (current != node && current->next)
+        while (current != chunk && current->next)
         {
             prev = current;
             current = current->next;
         }
 
-        if (current == node)
+        if (current == chunk)
         {
             if (prev)
             {
                 prev->next = current->next;
             }
-            node->next = nullptr;
+            chunk->next = nullptr;
         }
     }
 
@@ -132,38 +128,20 @@ public:
     std::shared_ptr<mem_chunk_t> find_free_chunk(std::size_t size)
     {
         auto current = free_list_head;
-        std::shared_ptr<mem_chunk_t> prev = nullptr;
         while (current)
         {
             if (current->size >= size)
             {
-                if (current->size > size + sizeof(mem_chunk_t))
-                {
-                    auto remaining_size = current->size - size - sizeof(mem_chunk_t);
-                    auto new_chunk_ptr = reinterpret_cast<char*>(current->ptr) + size + sizeof(mem_chunk_t);
-                    auto new_chunk = std::make_shared<mem_chunk_t>(new_chunk_ptr, remaining_size, true);
-                    current->size = size;
-                    new_chunk->next = current->next;
-                    current->next = new_chunk;
-                    new_chunk->is_free = true;
-                }
-                if (prev)
-                {
-                    prev->next = current->next;
-                }
-                else
-                {
-                    free_list_head = current->next;
-                }
-                current->is_free = false;
-                current->next = nullptr;
                 if (current->size > size)
                 {
-                    add_to_free_list(current->next);
+                    auto remaining_size = current->size - size;
+                    auto new_chunk_ptr = reinterpret_cast<char*>(current->ptr) + size;
+                    auto new_chunk = std::make_shared<mem_chunk_t>(new_chunk_ptr, remaining_size);
+                    current->size = size;
+                    add_to_free_list(new_chunk);
                 }
                 return current;
             }
-            prev = current;
             current = current->next;
         }
         return nullptr;
@@ -174,6 +152,7 @@ public:
         auto chunk = find_free_chunk(size);
         if (chunk)
         {
+            remove_from_free_list(chunk);
             return chunk;
         }
 
@@ -182,10 +161,11 @@ public:
         chunk = find_free_chunk(size);
         if (chunk)
         {
+            remove_from_free_list(chunk);
             return chunk;
         }
 
-        std::size_t block_size = std::max(size + sizeof(mem_chunk_t),
+        std::size_t block_size = std::max(size,
                                           static_cast<std::size_t>(sysconf(_SC_PAGESIZE) * 16));
         auto new_block = allocate_block(block_size);
         if (!new_block)
@@ -193,17 +173,16 @@ public:
             return nullptr;
         }
 
-        auto new_chunk = std::make_shared<mem_chunk_t>(new_block->ptr, block_size, true);
+        auto new_chunk = std::make_shared<mem_chunk_t>(new_block->ptr, block_size);
         new_block->chunks_head = new_chunk;
         add_to_free_list(new_chunk);
 
         return find_free_chunk(size);
     }
 
-    void free_chunk(std::shared_ptr<mem_chunk_t> node)
+    void free_chunk(std::shared_ptr<mem_chunk_t> chunk)
     {
-        node->is_free = true;
-        add_to_free_list(node);
+        add_to_free_list(chunk);
         coalesce_free_list();
         free_unused_blocks();
     }

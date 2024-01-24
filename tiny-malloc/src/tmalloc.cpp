@@ -12,13 +12,12 @@ void* tmalloc(std::size_t size)
 {
     std::lock_guard lock(mutex);
 
-    auto chunk_node = heap->allocate_chunk(size);
-    if (!chunk_node)
+    auto chunk = heap->allocate_chunk(size);
+    if (!chunk)
     {
         return nullptr;
     }
-    chunk_node->is_free = false;
-    return chunk_node->ptr;
+    return chunk->ptr;
 }
 
 bool tfree(void* ptr)

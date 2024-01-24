@@ -12,12 +12,8 @@ public:
 
     std::shared_ptr<mem_chunk_t> next;
 
-    mem_chunk_t() : ptr(nullptr), size(0), is_free(true)
-    {
-    }
-
-    mem_chunk_t(void* ptr, std::size_t size, bool is_free = true)
-        : ptr(ptr), size(size), is_free(is_free)
+    mem_chunk_t(void* ptr, std::size_t size)
+        : ptr(ptr), size(size)
     {
     }
 };

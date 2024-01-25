@@ -25,7 +25,7 @@ public:
         {
             return nullptr;
         }
-        block->next_block = blocks_head;
+        block->next = blocks_head;
         blocks_head = block;
         return block;
     }
@@ -41,19 +41,19 @@ public:
             {
                 if (prev)
                 {
-                    prev->next_block = current->next_block;
+                    prev->next = current->next;
                 }
                 else
                 {
-                    blocks_head = current->next_block;
+                    blocks_head = current->next;
                 }
 
-                current = prev ? prev->next_block : blocks_head;
+                current = prev ? prev->next : blocks_head;
             }
             else
             {
                 prev = current;
-                current = current->next_block;
+                current = current->next;
             }
         }
     }
@@ -113,7 +113,7 @@ public:
         while (current && current->next)
         {
             auto next = current->next;
-            if (reinterpret_cast<char*>(current->ptr) + current->size == next->ptr)
+            if (static_cast<char*>(current->ptr) + current->size == next->ptr)
             {
                 current->size += next->size;
                 current->next = next->next;
@@ -135,7 +135,7 @@ public:
                 if (current->size > size)
                 {
                     auto remaining_size = current->size - size;
-                    auto new_chunk_ptr = reinterpret_cast<char*>(current->ptr) + size;
+                    auto new_chunk_ptr = static_cast<char*>(current->ptr) + size;
                     auto new_chunk = std::make_shared<mem_chunk_t>(new_chunk_ptr, remaining_size);
                     current->size = size;
                     add_to_free_list(new_chunk);
@@ -183,7 +183,12 @@ public:
     void free_chunk(std::shared_ptr<mem_chunk_t> chunk)
     {
         add_to_free_list(chunk);
-        coalesce_free_list();
+        static size_t free_count = 0;
+        free_count++;
+        if (free_count % 256 == 0)
+        {
+            coalesce_free_list();
+        }
         free_unused_blocks();
     }
 };

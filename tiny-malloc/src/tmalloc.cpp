@@ -37,7 +37,7 @@ bool tfree(void* ptr)
             }
             chunk = chunk->next;
         }
-        block = block->next_block;
+        block = block->next;
     }
     return false;
 }

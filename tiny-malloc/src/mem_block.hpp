@@ -13,11 +13,11 @@ public:
     void* ptr;
     std::size_t size;
 
-    std::shared_ptr<mem_block_t> next_block;
+    std::shared_ptr<mem_block_t> next;
     std::shared_ptr<mem_chunk_t> chunks_head;
 
     explicit mem_block_t(std::size_t size)
-        : size(size), next_block(nullptr), chunks_head(nullptr)
+        : size(size), next(nullptr), chunks_head(nullptr)
     {
         ptr = mmap(
             nullptr,
